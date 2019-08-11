@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <concepts>
 
 
 template <typename value_type, typename Derived>
@@ -27,8 +26,10 @@ public:
     //     return derived_this();
     // };
 
-    
-    Derived& operator+=(value_type&& other) -> decltype({
+    template <typename T>
+    concept T& Addable = requires (value_type& x, T&& y) { { x += y } -> T; }; // requires-expression
+
+    Derived& operator+=(Addable other) {
         std::cout << "wut face" << std::endl;
         before_operation(m_val);
         m_val += other;
@@ -36,7 +37,7 @@ public:
 
         return derived_this();
     }
-    requires 
+
     
 
 
