@@ -2,6 +2,14 @@
 #include <vector>
 
 
+template <typename T>
+concept bool OperatorPlusEqual() {
+    return requires(T& a, T b) {
+        { a += b } -> T&;
+    };
+};
+
+
 template <typename value_type, typename Derived>
 class proxy_var_base {
 public:
@@ -17,19 +25,8 @@ private:
     }
 
 public:
-
-    // Derived& operator+=(Derived&& other) {
-    //     before_operation(m_val);
-    //     m_val += other.m_val;
-    //     after_operation(m_val);
-
-    //     return derived_this();
-    // };
-
-    template <typename T>
-    concept T& Addable = requires (value_type& x, T&& y) { { x += y } -> T; }; // requires-expression
-
-    Derived& operator+=(Addable other) {
+    template <OperatorPlusEqual T>
+    Derived& operator+=(T other) {
         std::cout << "wut face" << std::endl;
         before_operation(m_val);
         m_val += other;
@@ -54,10 +51,10 @@ private:
 };
 
 
-class proxy_int : public proxy_var_base<std::vector<int>, proxy_int> {
+class proxy_int : public proxy_var_base<int, proxy_int> {
     public:
         proxy_int(int a) :
-            proxy_var_base<std::vector<int>,proxy_int>(a) {
+            proxy_var_base<int,proxy_int>(a) {
 
         }
 
@@ -77,7 +74,7 @@ int main(int argc, char** argv) {
 
     std::cout << "proxy var testing " << std::endl;
 
-    // test += 2;
+    test += 2.0f;
 
     // std::cout << test << std::endl;
     
