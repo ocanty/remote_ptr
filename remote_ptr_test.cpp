@@ -44,16 +44,44 @@ public:
     public:
         value_proxy(instance_type& exterior) :
             m_exterior(exterior) {
+            std::cout << "value_proxy()" << std::endl;
 
             m_initial_value_buffer.resize(sizeof(value_type));
             read_remote(m_exterior.m_address, &m_initial_value_buffer[0], m_initial_value_buffer.size());
+            for(int i = 0; i < m_initial_value_buffer.size()/4; i++) {
+                std::cout << "Read: " << ((int*)(m_initial_value_buffer.data()))[i] << std::endl;
+            }
+
             m_value_buffer = m_initial_value_buffer;
 
             //std::cout << "Initial read " << *this << std::endl;
         };
 
         ~value_proxy() {
-            write_remote(m_exterior.m_address, &m_value_buffer[0], m_value_buffer.size());
+            std::cout << "~value_proxy()" << std::endl;
+            // Diff the buffer we have now vs the one we began initially with
+            // and write changes
+            std::size_t commit_c = 0;
+            for(auto it = m_initial_value_buffer.begin(); it != m_initial_value_buffer.end(); it++) {
+                auto offset = std::distance(m_initial_value_buffer.begin(), it);
+                std::cout << "initial byte " << (std::uint32_t)*it << std::endl;
+                std::cout << "compare byte " << (std::uint32_t)*(m_value_buffer.begin() + offset) << std::endl;
+                
+                if(*it != *(m_value_buffer.begin() + offset)) {
+                    commit_c++;
+                }
+
+                if (commit_c > 0) {
+                    if(*it == *(m_value_buffer.begin() + offset)) {
+                        // commit changes
+                        write_remote(m_exterior.m_address + offset - commit_c, &m_value_buffer[offset], commit_c),
+                        std::cout << "Commiting " << commit_c << " bytes " << " at " << m_exterior.m_address + offset - commit_c <<  std::endl;
+                        commit_c = 0;
+                    }
+                }
+            }
+
+            //write_remote(m_exterior.m_address, &m_value_buffer[0], m_value_buffer.size());
         };
 
     private:
@@ -75,18 +103,19 @@ public:
             return reinterpret_cast<const value_type&>(*value());
         }
 
-        typedef typename std::remove_pointer<value_type>::type value_type_deref;
-        /**
-         * Dereference the value remotely if T is a pointer type
-         * @notes This reads the value stored at the memory address, and sets the address to it
-         *        Disabled for non-pointer types
-         * @return A value represented the dereferenced remote value
-         */
-        template <typename U = value_type, std::enable_if_t<std::is_pointer<U>::value,int>>
-        remote_ptr<value_type_deref, read_remote, write_remote>::value_proxy operator*() const {
-            // read address stored and dereference
-            return value<T_deref,read,write>((std::uintptr_t)this->get_value());
-        }
+        // typedef typename std::remove_pointer<value_type>::type value_type_deref;
+        // /**
+        //  * Dereference the value remotely if T is a pointer type
+        //  * @notes This reads the value stored at the memory address, and sets the address to it
+        //  *        Disabled for non-pointer types
+        //  * @return A value represented the dereferenced remote value
+        //  */
+        // template <typename U = value_type, std::enable_if_t<std::is_pointer<U>::value,int>>
+        // remote_ptr<value_type_deref, read_remote, write_remote>::value_proxy operator*() const {
+        //     return remote_ptr<value_type_deref, read_remote, write_remote>(25)
+        //     // read address stored and dereference
+        //     // return value<T_deref,read,write>((std::uintptr_t)this->get_value());
+        // }
     };
 
     class class_proxy {
@@ -103,7 +132,7 @@ public:
         value_proxy m_proxy;
     };
 
-    template <typename U, std::enable_if_t<std::is_class<U>::value, int> = 0>
+    // template <typename U, std::enable_if_t<std::is_class<U>::value, int> = 0>
     class_proxy operator->() {
         return class_proxy(*this);
     }
@@ -168,23 +197,31 @@ class test_object {
 
 };
 
+struct test {
+    int a, b, c, d;
+};
+
 int main(int argc, char** argv) {
-    using a = test_object<std::uint32_t>;
+    //using a = test_object<std::uint32_t>;
 
-    remote_ptr<a, read_remote, write_remote> ab(0);
+    test a {0xFFFFFFF, 6, 1024, 8};
+    test b;
+    write_remote(0,(std::uint8_t*)&a,sizeof(test));
+    read_remote(0, (std::uint8_t*)&b, sizeof(test));
+    std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
+    std::cout << b.a << " " << b.b << " " << b.c << " " << b.d << " " << std::endl;
+    remote_ptr<test, read_remote, write_remote> ab(0);
+    ab->a = 990;
+    ab->b = 7;
 
-    while(*(*ab) != NULL) {
-        (*ab) = ab->next;
-    }
+    read_remote(0, (std::uint8_t*)&a, sizeof(test));
 
-
-    std::cout << (*ab).m_val << std::endl;
-    (*ab)+=5;
-    std::cout << (*ab).m_val << std::endl;
-    
-    //std::cout <<   << std::endl;
-    //std::cout << *a << std::endl;
-    //std::cout << reinterpret_cast<test_object<std::uint32_t>&>(*a).m_val << std::endl;
+    std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
+    // std::cout << "values:" << std::endl;
+    // std::cout << "- " << ab->a << std::endl;
+    // std::cout << "- " << ab->b << std::endl;
+    // std::cout << "- " << ab->c << std::endl;
+    // std::cout << "- " << ab->d << std::endl;
     return 0;
 }
 
