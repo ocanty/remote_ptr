@@ -28,7 +28,7 @@ public:
     using value_type = T;
     using instance_type = remote_ptr<value_type, read_remote, write_remote>;
 
-    remote_ptr(std::uintptr_t address) :
+    explicit remote_ptr(std::uintptr_t address) :
         m_address(address) {
         
     };
@@ -43,16 +43,18 @@ public:
 
             m_initial_value_buffer.resize(sizeof(value_type));
             read_remote(m_exterior.m_address, &m_initial_value_buffer[0], m_initial_value_buffer.size());
-            for(int i = 0; i < m_initial_value_buffer.size()/4; i++) {
+            for(int i = 0; i < m_initial_value_buffer.size()/8; i++) {
                 std::cout << "Read: " << ((int*)(m_initial_value_buffer.data()))[i] << std::endl;
             }
 
             m_value_buffer = m_initial_value_buffer;
 
+
             //std::cout << "Initial read " << *this << std::endl;
         };
 
         ~value_proxy() {
+            std::cout << "~value_proxy()" << std::endl;
             // Walk the two buffers we started and finished with and compare changes before and after creation of this class
             std::size_t diff_count = 0;
 
@@ -69,6 +71,8 @@ public:
                     // The sequence has ended
                     // Commit all previous changes
                     write_remote(m_exterior.m_address + offset - diff_count, &m_value_buffer[offset - diff_count], diff_count);
+                    std::cout << "Committing " << diff_count << " bytes to " << m_exterior.m_address + offset - diff_count << std::endl;
+
                     diff_count = 0;
                 }
 
@@ -84,11 +88,16 @@ public:
         instance_type& m_exterior;
 
         constexpr value_type* value() {
+            std::cout << "value()" << std::endl;
+            for(int i = 0; i < m_initial_value_buffer.size()/8; i++) {
+                std::cout << "Read: " << ((int*)(m_value_buffer.data()))[i] << std::endl;
+            }
             return reinterpret_cast<value_type*>(m_value_buffer.data());
         }
 
     public:
         operator value_type&() {
+            std::cout << "value_type()" << std::endl;
             return reinterpret_cast<value_type&>(*value());
         }
 
@@ -103,11 +112,9 @@ public:
          *        Disabled for non-pointer types
          * @return A value represented the dereferenced remote value
          */
-        template <typename U, std::enable_if_t<std::is_pointer<value_type>::value,int>>
-        remote_ptr<value_type_deref, read_remote, write_remote>::value_proxy operator*() const {
-            return remote_ptr<value_type_deref, read_remote, write_remote>(reinterpret_cast<std::uintptr_t>(*value()));
-            // read address stored and dereference
-            // return value<T_deref,read,write>((std::uintptr_t)this->get_value());
+        template <typename U = value_type, std::enable_if_t<std::is_pointer<U>::value, int> = 0>
+        remote_ptr<value_type_deref, read_remote, write_remote>::value_proxy operator*() {
+            return *(remote_ptr<value_type_deref, read_remote, write_remote>(reinterpret_cast<std::uintptr_t>(*value())));
         }
     };
 
@@ -125,16 +132,20 @@ public:
         value_proxy m_proxy;
     };
 
-    // template <typename U, std::enable_if_t<std::is_class<U>::value, int> = 0>
+    template <typename U = value_type, std::enable_if_t<std::is_class<U>::value, int> = 0>
     class_proxy operator->() {
         return class_proxy(*this);
     }
 
-    //template <typename U = value_type, typename = std::enable_if<std::is_class<value_type>::value>::value = false>
+    template <typename U = value_type, std::enable_if_t<std::is_class<U>::value, int> = 0>
     value_type& operator*() {
         return value_proxy(*this);
     }
 
+    template <typename U = value_type, std::enable_if_t<!std::is_class<U>::value, int> = 0>
+    value_proxy operator*() {
+        return value_proxy(*this);
+    }
 
 private:
     std::uintptr_t m_address;
@@ -147,7 +158,7 @@ class test_object {
             m_val = 0;
         }
 
-        test_object(value_type initial) 
+        explicit test_object(value_type initial) 
             : m_val(initial) {
 
         };
@@ -197,24 +208,31 @@ struct test {
 int main(int argc, char** argv) {
     //using a = test_object<std::uint32_t>;
     g_buffer.resize(32);
-    test a {0xFFFFFFF, 0xCCCCCC, 0xEFEFEFE, 0xDEDEDE};
-    test b;
-    write_remote(0,(std::uint8_t*)&a,sizeof(test));
-    read_remote(0, (std::uint8_t*)&b, sizeof(test));
-    std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
-    std::cout << b.a << " " << b.b << " " << b.c << " " << b.d << " " << std::endl;
-    remote_ptr<test, read_remote, write_remote> ab(0);
-    ab->a = 0;
-    ab->b = 7;
+    // test a {0xFFFFFFF, 0xCCCCCC, 0xEFEFEFE, 0xDEDEDE};
+    // test b;
+    // write_remote(0,(std::uint8_t*)&a,sizeof(test));
+    // read_remote(0, (std::uint8_t*)&b, sizeof(test));
+    // std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
+    // std::cout << b.a << " " << b.b << " " << b.c << " " << b.d << " " << std::endl;
+    // remote_ptr<test, read_remote, write_remote> ab(0);
+    // ab->a = 0;
+    // ab->b = 7;
 
-    read_remote(0, (std::uint8_t*)&a, sizeof(test));
+    // read_remote(0, (std::uint8_t*)&a, sizeof(test));
 
-    std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
-    // std::cout << "values:" << std::endl;
-    // std::cout << "- " << ab->a << std::endl;
-    // std::cout << "- " << ab->b << std::endl;
-    // std::cout << "- " << ab->c << std::endl;
-    // std::cout << "- " << ab->d << std::endl;
+    // std::cout << a.a << " " << a.b << " " << a.c << " " << a.d << " " << std::endl;
+    // // std::cout << "values:" << std::endl;
+    // // std::cout << "- " << ab->a << std::endl;
+    // // std::cout << "- " << ab->b << std::endl;
+    // // std::cout << "- " << ab->c << std::endl;
+    // // std::cout << "- " << ab->d << std::endl;
+    *(std::uintptr_t*)&g_buffer[0] = 0x0008;
+    *(std::uintptr_t*)&g_buffer[0x8] = 0xDEADBEEF;
+    remote_ptr<std::uintptr_t*, read_remote, write_remote> ab(0);
+    remote_ptr<std::uintptr_t, read_remote, write_remote> c(0);
+
+    std::cout << *(*ab) << std::endl;
+
     return 0;
 }
 
