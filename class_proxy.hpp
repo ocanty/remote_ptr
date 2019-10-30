@@ -46,8 +46,7 @@ public:
         auto class_data_it      = reinterpret_cast<std::uint8_t*>(class_this);
         
         std::size_t diff_count = 0;
-        auto it = m_original.begin();
-        
+
         // Diff two buffers and write changes
         while(original_it != m_original.end()) {
             auto offset = std::distance(m_original.begin(), original_it);
@@ -67,7 +66,7 @@ public:
             }
 
             ++class_data_it;
-            ++it;
+            ++original_it;
         }
     };
 
