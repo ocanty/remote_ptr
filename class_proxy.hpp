@@ -25,7 +25,7 @@ private:
 public:
     class_proxy(std::uintptr_t address) 
         : value_type(), m_address(address) {
-        std::cout << "class_proxy()" << std::endl;
+        // std::cout << "class_proxy()" << std::endl;
 
         // Build a buffer that we can diff against later
         m_original.resize(sizeof(value_type));
@@ -38,8 +38,6 @@ public:
     };
 
     ~class_proxy() {
-        std::cout << "~class_proxy()" << std::endl;
-
         auto original_it        = m_original.begin();
         auto class_this         = static_cast<value_type*>(this);
         auto class_data_start   = reinterpret_cast<std::uint8_t*>(class_this);
@@ -59,7 +57,7 @@ public:
                 // The sequence has ended
                 // Commit all previous changes
                 write_remote(m_address + offset - diff_count, &class_data_start[offset - diff_count], diff_count);
-                std::cout << "Committing " << diff_count << " bytes to " << m_address + offset - diff_count << std::endl;
+                // std::cout << "Committing " << diff_count << " bytes to " << m_address + offset - diff_count << std::endl;
                 
                 // Reset count
                 diff_count = 0;
@@ -69,6 +67,13 @@ public:
             ++original_it;
         }
     };
+
+
+    template <typename ArgsR>
+    instance_type& operator=(ArgsR&& r) {
+        *this = std::forward<ArgsR>(r);
+        return *this;
+    }
 
     operator value_type&() {
         return static_cast<value_type&>(*this);

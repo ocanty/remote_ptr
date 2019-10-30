@@ -88,7 +88,8 @@ int main(int argc, char** argv) {
     remote_ptr<std::uintptr_t*, read_remote, write_remote> ab(0);
     remote_ptr<std::uintptr_t, read_remote, write_remote> c(0);
 
-    std::cout << *(*ab) << std::endl;
+    *c = 5;
+    std::cout << *c << std::endl;
 
     std::cout << "here??" << std::endl;
     test_object<std::uint32_t> obj(5);
