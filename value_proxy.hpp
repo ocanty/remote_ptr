@@ -23,9 +23,9 @@ private:
     std::vector<std::uint8_t> m_future;
 
     constexpr value_type* value() {
-        std::cout << "value()" << std::endl;
+        // std::cout << "value()" << std::endl;
         for(int i = 0; i < m_original.size()/8; i++) {
-            std::cout << "Read: " << ((int*)(m_future.data()))[i] << std::endl;
+            // std::cout << "Read: " << ((int*)(m_future.data()))[i] << std::endl;
         }
         return reinterpret_cast<value_type*>(m_future.data());
     }
@@ -33,7 +33,7 @@ private:
 public:
     value_proxy(std::uintptr_t address) :
         m_address(address) {
-        std::cout << "value_proxy()" << std::endl;
+        // std::cout << "value_proxy()" << std::endl;
 
         m_original.resize(sizeof(value_type));
         read_remote(m_address, &m_original[0], m_original.size());
@@ -41,7 +41,7 @@ public:
     };
 
     ~value_proxy() {
-        //std::cout << "~value_proxy()" << std::endl;
+        // std::cout << "~value_proxy()" << std::endl;
         // Walk the two buffers we started and finished with and compare changes before and after creation of this class
         std::size_t diff_count = 0;
 
@@ -59,7 +59,7 @@ public:
                 // The sequence has ended
                 // Commit all previous changes
                 write_remote(m_address + offset - diff_count, &m_future[offset - diff_count], diff_count);
-                std::cout << "Committing " << diff_count << " bytes to " << m_address + offset - diff_count << std::endl;
+                // std::cout << "Committing " << diff_count << " bytes to " << m_address + offset - diff_count << std::endl;
 
                 diff_count = 0;
             }
@@ -68,12 +68,18 @@ public:
             ++original_it;
         }
 
-        std::cout << "~value_proxy()" << std::endl;
+        // std::cout << "~value_proxy()" << std::endl;
     };
+
+    template <typename ArgsR>
+    instance_type& operator=(ArgsR&& r) {
+        *value() = std::forward<ArgsR>(r);
+        return *this;
+    }
 
     public:
     operator value_type&() {
-        std::cout << "value_type()" << std::endl;
+        // std::cout << "value_type()" << std::endl;
         return reinterpret_cast<value_type&>(*value());
     }
 
