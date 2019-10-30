@@ -63,16 +63,16 @@ int main(int argc, char** argv) {
     ptr<SomeVector3f> vec(0x4000500);
     
     // Modifications are made
-    ptr->a = 5;
-    ptr->b = 6;
+    vec->a = 5;
+    vec->b = 6;
     
-    *ptr = { 0.5f, 2.5f, 3f };
+    *vec = { 0.5f, 2.5f, 3f };
     
-    std::cout << ptr->magnitude() << std::endl;
+    std::cout << vec->magnitude() << std::endl;
     
-    ptr->half();
+    vec->half();
     
-    std::cout << ptr->magnitude() << std::endl;
+    std::cout << vec->magnitude() << std::endl;
     
     // You can also access any primitive types
     ptr<int> some_int(0x41233);

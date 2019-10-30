@@ -24,9 +24,7 @@ private:
 
     constexpr value_type* value() {
         // std::cout << "value()" << std::endl;
-        for(int i = 0; i < m_original.size()/8; i++) {
-            // std::cout << "Read: " << ((int*)(m_future.data()))[i] << std::endl;
-        }
+
         return reinterpret_cast<value_type*>(m_future.data());
     }
 
