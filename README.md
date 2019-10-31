@@ -99,12 +99,3 @@ int main(int argc, char** argv) {
 Whenever the pointer is dereferenced, a temporary is returned. In the constructor of the temporary, the value is read and written back in the destructor. All modifications are performed on the temporary
 
 SFINAE is used to create operator overloads on class types so any variations in avaialble overloads are supported.
-
-
-
-
-
-
-
-
-```
