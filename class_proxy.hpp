@@ -149,7 +149,7 @@ public:
         return std::forward<ArgsL>(l) op static_cast<value_type>(r); \
     } \
     template <typename ArgsR> \
-    friend auto operator<<(instance_type&& l, ArgsR&& r) -> decltype(std::declval<value_type>() op std::declval<ArgsR>()) const { \
+    friend auto operator op (instance_type&& l, ArgsR&& r) -> decltype(std::declval<value_type>() op std::declval<ArgsR>()) const { \
         return static_cast<value_type>(l) op std::forward<ArgsR>(r); \
     } 
 
