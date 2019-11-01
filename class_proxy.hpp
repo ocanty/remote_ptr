@@ -24,11 +24,8 @@ private:
 
 public:
     class_proxy(std::uintptr_t address) 
-        : value_type(), m_address(address) {
+        : value_type(), m_address(address), m_original(sizeof(value_type), 0) {
         // std::cout << "class_proxy()" << std::endl;
-
-        // Build a buffer that we can diff against later
-        m_original.resize(sizeof(value_type));
 
         // Copy in remote data into the buffer
         read_remote(m_address, &m_original[0], m_original.size());

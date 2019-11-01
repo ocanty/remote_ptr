@@ -30,10 +30,9 @@ private:
 
 public:
     value_proxy(std::uintptr_t address) :
-        m_address(address) {
+        m_address(address), m_original(sizeof(value_type), 0) {
         // std::cout << "value_proxy()" << std::endl;
 
-        m_original.resize(sizeof(value_type));
         read_remote(m_address, &m_original[0], m_original.size());
         m_future = m_original;
     };
